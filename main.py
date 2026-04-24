@@ -1,4 +1,13 @@
+import os
+from dotenv import load_dotenv
 import pyupbit
 
-price = pyupbit.get_current_price("KRW-BTC")
-print("현재 비트코인 가격:", price)
+load_dotenv()
+
+access = os.getenv("UPBIT_ACCESS_KEY")
+secret = os.getenv("UPBIT_SECRET_KEY")
+
+upbit = pyupbit.Upbit(access, secret)
+
+balances = upbit.get_balances()
+print(balances)

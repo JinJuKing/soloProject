@@ -7,6 +7,7 @@ import pyupbit
 from modules.buy import buy_market
 from modules.sell import sell_by_percent
 from modules.check import check_balance
+from modules.auto_trade import auto_trade_test
 
 load_dotenv()
 
@@ -19,9 +20,10 @@ print("===== soloProject =====")
 print("1. 지갑 내용 확인")
 print("2. 매수하기")
 print("3. 매도하기")
+print("4. 자동매매 테스트")
 print("=======================")
 
-choice = input("원하는 작업을 선택하세요 (1 / 2 / 3) : ")
+choice = input("원하는 작업을 선택하세요 (1 / 2 / 3 / 4) : ")
 
 if choice == "1":
     check_balance(upbit)
@@ -36,5 +38,8 @@ elif choice == "3":
     sell_by_percent(upbit)
     check_balance(upbit)
 
+elif choice == "4":
+    auto_trade_test(upbit)
+
 else:
-    print("잘못 입력했습니다. 1, 2, 3 중에서 선택하세요.")
+    print("잘못 입력했습니다. 1, 2, 3, 4 중에서 선택하세요.")

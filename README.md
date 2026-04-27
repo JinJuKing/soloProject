@@ -39,6 +39,11 @@ soloProject/
 ├─ main.py                   # Terminal menu program
 ├─ modules/
 │  ├─ auto_trade.py          # Terminal virtual auto-trading practice
+│  ├─ chart.py               # Plotly candlestick chart builder
+│  ├─ formatting.py          # Price and percent formatting helpers
+│  ├─ market.py              # Upbit market data and fast-moving coin lookup
+│  ├─ position.py            # Virtual position and profit/loss calculation
+│  ├─ trade_log.py           # Virtual trade CSV logging
 │  ├─ buy.py                 # Buy helper
 │  ├─ sell.py                # Sell helper
 │  └─ check.py               # Balance check helper

@@ -24,3 +24,6 @@ pip install 패키지명
 
 ## 설치 목록 저장
 pip freeze > requirements.txt
+
+## 자동매매 서버 실행
+venv\Scripts\python.exe -m streamlit run dashboard.py

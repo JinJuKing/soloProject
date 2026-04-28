@@ -1,28 +1,28 @@
-# Upbit Trading Dashboard
+# 업비트 실시간 자동매매 대시보드
 
-Upbit real-time market data based trading dashboard built with Python and Streamlit.
+업비트 실시간 시세 데이터를 활용해 코인 가격을 확인하고, 조건 기반 매수/매도 흐름을 테스트할 수 있는 Python + Streamlit 기반 대시보드입니다.
 
-This project started as a terminal-based trading practice program and was expanded into a browser dashboard where users can monitor prices, inspect volatile coins, run spot market orders after explicit API-key activation, and review trade records visually.
+처음에는 터미널에서 실행하는 가상 자동매매 연습 프로그램으로 시작했고, 이후 브라우저에서 차트, 급변동 코인, 추천 코인, 보유 자산, 거래 기록을 확인할 수 있는 대시보드 형태로 확장했습니다.
 
-> This project is for learning and personal trading practice. It does not guarantee profit and should not be treated as financial advice.
+> 이 프로젝트는 학습 및 개인 연습 목적으로 제작되었습니다. 수익을 보장하지 않으며, 투자 판단의 최종 책임은 사용자에게 있습니다.
 
-## Features
+## 주요 기능
 
-- Real-time Upbit KRW market price lookup
-- Streamlit browser dashboard
-- Real spot market buy/sell workflow in the basic tab
-- Real spot market buy/sell workflow for selected fast-moving coins
-- Free rule-based AI recommendation tab
-- Take-profit and stop-loss simulation
-- Auto refresh interval selection: 3s, 5s, 10s, or off
-- Fast-moving coin list based on daily change TOP 3
-- Candlestick chart with red/blue candles and volume bars
-- Entry price, target price, and stop-loss guide lines
-- Virtual trade history saved as CSV
-- API keys managed through `.env`
-- Sensitive files excluded from Git with `.gitignore`
+- 업비트 KRW 마켓 실시간 현재가 조회
+- Streamlit 기반 웹 대시보드
+- API 키 입력 후 실거래 시장가 매수/매도 지원
+- 보유 원화 및 선택 코인 보유 수량 표시
+- 익절/손절 퍼센트 설정
+- 목표가/손절가 도달 시 자동 시장가 매도
+- 3초/5초/10초 자동 새로고침
+- 전일대비 상승/하락 급변동 코인 TOP3 조회
+- 무료 규칙 기반 AI 추천 탭
+- 빨간색/파란색 캔들 차트 및 거래량 시각화
+- 진입가, 목표가, 손절가 기준선 표시
+- 거래 기록 CSV 저장 및 초기화
+- `.env`, API 키, 거래 기록 등 민감정보 GitHub 업로드 방지
 
-## Tech Stack
+## 기술 스택
 
 - Python
 - Streamlit
@@ -33,123 +33,128 @@ This project started as a terminal-based trading practice program and was expand
 - python-dotenv
 - Git / GitHub
 
-## Project Structure
+## 프로젝트 구조
 
 ```text
 soloProject/
-├─ dashboard.py              # Streamlit dashboard
-├─ main.py                   # Terminal menu program
+├─ dashboard.py              # Streamlit 대시보드 화면
+├─ main.py                   # 터미널 실행용 메뉴 프로그램
 ├─ modules/
-│  ├─ auto_trade.py          # Terminal virtual auto-trading practice
-│  ├─ ai_advisor.py          # Free rule-based recommendation engine
-│  ├─ chart.py               # Plotly candlestick chart builder
-│  ├─ formatting.py          # Price and percent formatting helpers
-│  ├─ market.py              # Upbit market data and fast-moving coin lookup
-│  ├─ position.py            # Virtual position and profit/loss calculation
-│  ├─ trade_log.py           # Virtual trade CSV logging
-│  ├─ buy.py                 # Buy helper
-│  ├─ sell.py                # Sell helper
-│  └─ check.py               # Balance check helper
+│  ├─ auto_trade.py          # 터미널 기반 가상 자동매매 연습
+│  ├─ ai_advisor.py          # 무료 규칙 기반 추천 엔진
+│  ├─ chart.py               # Plotly 캔들 차트 생성
+│  ├─ formatting.py          # 원화/퍼센트 표시 포맷
+│  ├─ live_trade.py          # 업비트 실거래 주문/잔고 조회
+│  ├─ market.py              # 업비트 시세/급변동 코인 조회
+│  ├─ position.py            # 포지션 생성, 손익 계산, 목표/손절 판단
+│  ├─ trade_log.py           # 거래 기록 CSV 저장/불러오기
+│  ├─ buy.py                 # 터미널용 매수 보조 함수
+│  ├─ sell.py                # 터미널용 매도 보조 함수
+│  └─ check.py               # 터미널용 잔고 확인 함수
 ├─ data/
-│  └─ trades.csv             # Virtual trade log, ignored by Git
-├─ requirements.txt          # Python dependencies
-├─ memo.md                   # Personal command memo
+│  └─ trades.csv             # 거래 기록, Git 제외
+├─ requirements.txt          # Python 패키지 목록
+├─ memo.md                   # 개인 실행 명령어 메모
 └─ README.md
 ```
 
-## How To Run
+## 실행 방법
 
-1. Move to the project folder.
+1. 프로젝트 폴더로 이동합니다.
 
 ```powershell
 cd C:\soloProject
 ```
 
-2. Activate the virtual environment.
+2. 가상환경을 활성화합니다.
 
 ```powershell
 .\venv\Scripts\Activate
 ```
 
-3. Run the Streamlit dashboard.
+3. Streamlit 대시보드를 실행합니다.
 
 ```powershell
 venv\Scripts\python.exe -m streamlit run dashboard.py
 ```
 
-4. Open the local dashboard URL.
+4. 브라우저에서 아래 주소를 엽니다.
 
 ```text
 http://localhost:8501
 ```
 
-## Environment Variables
+## API 키 관리
 
-For local development, you can create a `.env` file in the project root when using Upbit private API features.
+로컬 개발에서는 프로젝트 루트에 `.env` 파일을 만들어 업비트 API 키를 둘 수 있습니다.
 
 ```env
 UPBIT_ACCESS_KEY=your_access_key
 UPBIT_SECRET_KEY=your_secret_key
 ```
 
-The `.env` file is excluded from Git, so API keys are not uploaded to GitHub.
+`.env` 파일은 `.gitignore`에 포함되어 GitHub에 업로드되지 않습니다.
 
-When using the Streamlit dashboard, live trading can receive API keys through password input fields after live trading is enabled. Those keys are used only in the current Streamlit session and are not saved to files.
+대시보드에서는 `실거래 활성화`를 체크한 뒤 화면의 비밀번호 입력칸에 업비트 API 키를 입력할 수도 있습니다. 이 키는 현재 Streamlit 세션에서만 사용하며 파일로 저장하지 않습니다.
 
-## Dashboard Modes
+## 대시보드 구성
 
-### Basic Trading
+### 기본 실거래
 
-The basic tab is designed for major coins such as Bitcoin and Ethereum. It can place real Upbit spot market orders only after live trading is enabled and API keys are entered.
+비트코인, 이더리움 등 주요 코인을 대상으로 실거래를 실행할 수 있는 탭입니다.
 
-- Select a coin
-- Check available KRW and coin balance
-- Set a real buy amount
-- Set take-profit percent
-- Set stop-loss percent
-- Review suggested take-profit and stop-loss reference values
-- Enable live trading and enter Upbit API keys before placing an order
-- Watch the dashboard close the position when a condition is met
+- 코인 선택
+- 보유 원화 및 보유 코인 수량 확인
+- 실제 매수 금액 입력
+- 익절 퍼센트 설정
+- 손절 퍼센트 설정
+- 최근 1분봉 변동성 기반 익절/손절 참고값 표시
+- API 키 확인 후 실제 시장가 매수
+- 목표가/손절가 도달 시 실제 시장가 매도
 
-### Fast-Moving Coins
+### 급변동 코인
 
-The fast-moving coin tab focuses on coins with large daily movement. It can place real Upbit spot market buy/sell orders for a selected coin after live trading is enabled and API keys are entered.
+전일대비 변동률이 큰 코인을 빠르게 확인하고, 선택한 코인을 대상으로 실거래를 실행할 수 있는 탭입니다.
 
-- Shows daily gainers TOP 3
-- Shows daily losers TOP 3
-- Opens a selected coin chart
-- Uses take-profit and stop-loss percent values such as `0.5%`, `1%`, or `3%`
-- Does not execute real short/futures positions because Upbit spot trading does not provide futures-style short orders
+- 전일대비 상승 TOP3 표시
+- 전일대비 하락 TOP3 표시
+- 선택한 코인의 캔들 차트 확인
+- 익절/손절 퍼센트 설정
+- API 키 확인 후 실제 시장가 매수/매도
+- 업비트 현물 거래 기준이므로 실제 숏/선물 포지션은 지원하지 않음
 
-### AI Recommendation
+### AI 추천
 
-The AI recommendation tab does not use a paid external AI API. It scores coins with a local rule-based engine.
+외부 유료 AI API를 사용하지 않고, 업비트 차트 원본 데이터를 직접 분석하는 무료 규칙 기반 추천 탭입니다.
 
-- Reads Upbit OHLCV chart data
-- Scores candidates using moving averages, volume growth, short-term trend, and volatility
-- Shows recommendation score, risk level, reason, take-profit, and stop-loss reference values
-- Lets the user select a recommended coin and manually place a real spot market order after live trading is enabled
+- 업비트 OHLCV 차트 데이터 분석
+- 이동평균, 거래량 증가율, 단기 추세, 변동성 기반 점수 계산
+- 추천 점수, 판단, 위험도, 추천 이유 표시
+- 추천 익절/손절 참고값 표시
+- 추천 코인 선택 후 사용자가 직접 실거래 버튼 클릭
 
-## Security Notes
+## 보안 및 주의사항
 
-- Do not commit `.env`.
-- Do not expose Upbit API keys.
-- Keep `venv/`, `.venv/`, and trade CSV logs out of Git.
-- This repository is structured so local virtual trade logs are ignored.
+- `.env` 파일은 GitHub에 업로드하지 않습니다.
+- 업비트 API 키를 코드에 직접 작성하지 않습니다.
+- `venv/`, `.venv/`, 거래 기록 CSV는 Git에서 제외합니다.
+- 실거래 기능은 실제 돈이 움직일 수 있으므로 반드시 소액으로 테스트해야 합니다.
+- 이 프로젝트는 수익을 보장하지 않습니다.
 
-## Portfolio Summary
+## 포트폴리오 포인트
 
-This project demonstrates:
+이 프로젝트를 통해 다음 내용을 구현했습니다.
 
-- Connecting to a real cryptocurrency market data API
-- Building an interactive dashboard with Streamlit
-- Visualizing market data with candlestick charts
-- Building a free rule-based recommendation engine
-- Designing trading workflows with live-order safety checks
-- Managing user settings and local trade records
-- Practicing Git/GitHub version control
-- Handling sensitive API keys safely
+- 실제 암호화폐 시세 API 연동
+- Streamlit 기반 인터랙티브 대시보드 구현
+- Plotly 캔들 차트와 거래량 시각화
+- 업비트 실거래 시장가 주문 흐름 구현
+- 익절/손절 조건 기반 자동 매도 로직
+- 무료 규칙 기반 추천 알고리즘 구현
+- API 키 입력 및 민감정보 보호 처리
+- 기능별 모듈화 구조 리팩토링
+- Git/GitHub 기반 버전 관리
 
-## Disclaimer
+## 면책 문구
 
-The basic trading tab and selected fast-moving coin tab can execute real Upbit spot market orders when API keys and live-trading activation are provided. This project does not execute real long/short futures trades. Upbit spot trading does not provide standard futures-style short positions. This project does not guarantee profit.
+이 프로젝트는 업비트 현물 거래를 기반으로 합니다. 업비트 현물 거래는 일반적인 선물 거래소의 롱/숏 포지션을 지원하지 않습니다. 본 프로그램은 투자 수익을 보장하지 않으며, 모든 실거래 사용 책임은 사용자에게 있습니다.

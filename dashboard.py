@@ -21,6 +21,8 @@ from modules.position import (
     is_position_stop_hit,
     is_position_target_hit,
 )
+from modules.performance import build_performance_summary
+from modules.risk import get_live_trade_block_reasons
 from modules.trade_log import append_trade_log, clear_trade_log, load_trade_log
 
 
@@ -85,15 +87,22 @@ def close_live_position(upbit, price, reason):
     if upbit is None:
         st.error("실제 매도를 위해 API 키를 다시 입력해주세요.")
         return
-
-    result = place_market_sell(upbit, position["ticker"], position["volume"])
-    if isinstance(result, dict) and "error" in result:
-        st.error(f"실제 매도 실패: {result['error'].get('message')}")
+    if st.session_state.get("order_in_progress"):
+        st.warning("주문 처리 중입니다. 잠시만 기다려주세요.")
         return
 
-    append_trade_log(build_close_log_row(position, price, f"실거래 {reason}"))
-    reset_position()
-    st.success("실제 시장가 매도 주문을 실행했습니다.")
+    st.session_state.order_in_progress = True
+    try:
+        result = place_market_sell(upbit, position["ticker"], position["volume"])
+        if isinstance(result, dict) and "error" in result:
+            st.error(f"실제 매도 실패: {result['error'].get('message')}")
+            return
+
+        append_trade_log(build_close_log_row(position, price, f"실거래 {reason}"))
+        reset_position()
+        st.success("실제 시장가 매도 주문을 실행했습니다.")
+    finally:
+        st.session_state.order_in_progress = False
 
 
 def show_position(current_price, ticker):
@@ -174,6 +183,8 @@ def show_trade_log():
         st.caption("거래 기록이 아직 없습니다.")
         return
 
+    show_performance_summary(log)
+
     view = log.tail(30).copy()
     for column in ["price", "amount", "profit"]:
         view[column] = view[column].map(lambda value: format_krw(float(value)))
@@ -192,6 +203,22 @@ def show_trade_log():
         }
     )
     st.dataframe(view, use_container_width=True, hide_index=True)
+
+
+def show_performance_summary(log):
+    summary = build_performance_summary(log)
+    if summary["total_trades"] == 0:
+        st.caption("청산된 거래가 생기면 승률과 손익 요약이 표시됩니다.")
+        return
+
+    st.caption("청산 기준 거래 성과")
+    cols = st.columns(6)
+    cols[0].metric("청산 거래", f"{summary['total_trades']}회")
+    cols[1].metric("승률", format_percent(summary["win_rate"]))
+    cols[2].metric("총 손익", format_krw(summary["total_profit"]))
+    cols[3].metric("오늘 손익", format_krw(summary["today_profit"]))
+    cols[4].metric("평균 수익률", format_percent(summary["average_profit_rate"]))
+    cols[5].metric("최대 손실", format_krw(summary["max_loss"]))
 
 
 def show_top_movers():
@@ -368,6 +395,8 @@ def render_live_dashboard(
     live_enabled,
     access_key,
     secret_key,
+    max_order_amount,
+    daily_loss_limit,
     live_reason_label="실거래 기본매매",
     live_buy_key="basic_live_buy",
     live_sell_key="basic_live_sell",
@@ -403,6 +432,7 @@ def render_live_dashboard(
     account_cols[0].metric("보유 원화", format_krw(account["krw"]))
     account_cols[1].metric(f"보유 {account['currency']}", f"{account['coin']:.8f}")
     account_cols[2].metric("실거래 상태", "활성화" if live_enabled else "잠김")
+    performance_summary = build_performance_summary(load_trade_log())
 
     left, right = st.columns([2, 1])
     with left:
@@ -417,6 +447,9 @@ def render_live_dashboard(
             stop_percent,
             live_enabled,
             account["krw"],
+            max_order_amount,
+            daily_loss_limit,
+            performance_summary["today_profit"],
             live_reason_label,
             live_buy_key,
             live_sell_key,
@@ -435,6 +468,9 @@ def show_live_position_controls(
     stop_percent,
     live_enabled,
     krw_balance,
+    max_order_amount,
+    daily_loss_limit,
+    today_profit,
     live_reason_label,
     live_buy_key,
     live_sell_key,
@@ -446,13 +482,24 @@ def show_live_position_controls(
     has_any_position = position is not None
     has_this_position = position is not None and position["ticker"] == ticker
     api_ready = get_live_client_from_inputs() is not None
-    ready_to_trade = live_enabled and api_ready and buy_amount <= krw_balance
+    risk_reasons = get_live_trade_block_reasons(
+        buy_amount,
+        krw_balance,
+        max_order_amount,
+        daily_loss_limit,
+        today_profit,
+    )
+    order_in_progress = st.session_state.get("order_in_progress", False)
+    ready_to_trade = live_enabled and api_ready and not risk_reasons and not order_in_progress
 
     if live_enabled and not api_ready:
         st.warning("실거래를 하려면 API 키를 입력해주세요.")
 
-    if buy_amount > krw_balance:
-        st.warning("매수 금액이 보유 원화보다 큽니다.")
+    for reason in risk_reasons:
+        st.warning(reason)
+
+    if order_in_progress:
+        st.info("주문 처리 중입니다. 잠시만 기다려주세요.")
 
     if st.button(
         "실제 시장가 매수",
@@ -460,27 +507,35 @@ def show_live_position_controls(
         use_container_width=True,
         key=live_buy_key,
     ):
-        result, bought_volume = place_market_buy(upbit, ticker, buy_amount)
-        if isinstance(result, dict) and "error" in result:
-            st.error(f"실제 매수 실패: {result['error'].get('message')}")
-            return
+        st.session_state.order_in_progress = True
+        try:
+            result, bought_volume = place_market_buy(upbit, ticker, buy_amount)
+            if isinstance(result, dict) and "error" in result:
+                st.error(f"실제 매수 실패: {result['error'].get('message')}")
+                return
 
-        position = build_live_position(
-            ticker,
-            current_price,
-            buy_amount,
-            bought_volume,
-            target_percent,
-            stop_percent,
-        )
-        st.session_state.position = position
-        append_trade_log(build_open_log_row(position, live_reason_label))
-        st.success("실제 시장가 매수 주문을 실행했습니다.")
+            if bought_volume <= 0:
+                bought_volume = buy_amount / current_price
+                st.warning("매수 수량 확인이 늦어져 현재가 기준 추정 수량으로 포지션을 기록했습니다.")
+
+            position = build_live_position(
+                ticker,
+                current_price,
+                buy_amount,
+                bought_volume,
+                target_percent,
+                stop_percent,
+            )
+            st.session_state.position = position
+            append_trade_log(build_open_log_row(position, live_reason_label))
+            st.success("실제 시장가 매수 주문을 실행했습니다.")
+        finally:
+            st.session_state.order_in_progress = False
         st.rerun()
 
     if st.button(
         "즉시 실제 시장가 매도",
-        disabled=not has_this_position,
+        disabled=not has_this_position or order_in_progress,
         use_container_width=True,
         key=live_sell_key,
     ):
@@ -494,6 +549,8 @@ def main():
 
     if "position" not in st.session_state:
         reset_position()
+    if "order_in_progress" not in st.session_state:
+        st.session_state.order_in_progress = False
 
     with st.sidebar:
         st.header("설정")
@@ -505,6 +562,8 @@ def main():
         live_enabled = st.checkbox("실거래 활성화", key="live_enabled")
         access_key = ""
         secret_key = ""
+        max_order_amount = 0
+        daily_loss_limit = 0
         if live_enabled:
             access_key = st.text_input(
                 "Upbit Access Key",
@@ -518,24 +577,38 @@ def main():
                 key="live_secret_key",
                 type="password",
             )
+            max_order_amount = st.number_input(
+                "1회 최대 매수 금액",
+                min_value=0,
+                value=10000,
+                step=1000,
+                help="0원으로 두면 1회 매수 금액 제한을 사용하지 않습니다.",
+            )
+            daily_loss_limit = st.number_input(
+                "하루 최대 실현 손실",
+                min_value=0,
+                value=10000,
+                step=1000,
+                help="0원으로 두면 하루 손실 제한을 사용하지 않습니다.",
+            )
             st.caption("API 키는 현재 Streamlit 세션에서만 사용하고 파일/GitHub에 저장하지 않습니다.")
 
     refresh_interval = None if refresh_seconds == 0 else f"{refresh_seconds}s"
     basic_tab, mover_tab, ai_tab = st.tabs(["기본 실거래", "급변동 코인", "AI 추천"])
 
     with basic_tab:
-        show_basic_tab(refresh_interval, live_enabled, access_key, secret_key)
+        show_basic_tab(refresh_interval, live_enabled, access_key, secret_key, max_order_amount, daily_loss_limit)
 
     with mover_tab:
-        show_mover_tab(refresh_interval, live_enabled, access_key, secret_key)
+        show_mover_tab(refresh_interval, live_enabled, access_key, secret_key, max_order_amount, daily_loss_limit)
 
     with ai_tab:
-        show_ai_tab(refresh_interval, live_enabled, access_key, secret_key)
+        show_ai_tab(refresh_interval, live_enabled, access_key, secret_key, max_order_amount, daily_loss_limit)
 
     st.caption("실거래 활성화와 API 키 확인 후 기본 실거래/급변동 코인 탭에서 실제 현물 시장가 주문을 실행할 수 있습니다.")
 
 
-def show_basic_tab(refresh_interval, live_enabled, access_key, secret_key):
+def show_basic_tab(refresh_interval, live_enabled, access_key, secret_key, max_order_amount, daily_loss_limit):
     st.subheader("기본 실거래 매매")
     coin_label = st.selectbox("코인", list(COIN_OPTIONS.keys()), key="basic_coin")
     ticker = COIN_OPTIONS[coin_label]
@@ -590,12 +663,14 @@ def show_basic_tab(refresh_interval, live_enabled, access_key, secret_key):
             live_enabled,
             access_key,
             secret_key,
+            max_order_amount,
+            daily_loss_limit,
         )
 
     basic_live_area()
 
 
-def show_mover_tab(refresh_interval, live_enabled, access_key, secret_key):
+def show_mover_tab(refresh_interval, live_enabled, access_key, secret_key, max_order_amount, daily_loss_limit):
     st.subheader("급변동 코인")
 
     @st.fragment(run_every=refresh_interval)
@@ -666,6 +741,8 @@ def show_mover_tab(refresh_interval, live_enabled, access_key, secret_key):
             live_enabled,
             access_key,
             secret_key,
+            max_order_amount,
+            daily_loss_limit,
             live_reason_label="실거래 급변동 코인",
             live_buy_key="mover_live_buy",
             live_sell_key="mover_live_sell",
@@ -702,7 +779,7 @@ def show_ai_recommendation_rows(recommendations):
             st.rerun()
 
 
-def show_ai_tab(refresh_interval, live_enabled, access_key, secret_key):
+def show_ai_tab(refresh_interval, live_enabled, access_key, secret_key, max_order_amount, daily_loss_limit):
     st.subheader("AI 추천")
     st.caption("외부 유료 AI API를 쓰지 않고, 이동평균/거래량/변동성/단기 추세를 점수화하는 무료 규칙 기반 추천입니다.")
 
@@ -779,6 +856,8 @@ def show_ai_tab(refresh_interval, live_enabled, access_key, secret_key):
             live_enabled,
             access_key,
             secret_key,
+            max_order_amount,
+            daily_loss_limit,
             live_reason_label="실거래 AI 추천",
             live_buy_key="ai_live_buy",
             live_sell_key="ai_live_sell",

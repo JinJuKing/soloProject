@@ -26,6 +26,10 @@ from modules.risk import get_live_trade_block_reasons
 from modules.trade_log import append_trade_log, clear_trade_log, load_trade_log
 
 
+LIVE_MAX_ORDER_AMOUNT = 100000
+LIVE_DAILY_LOSS_LIMIT = 100000
+
+
 def update_live_price_history(ticker, current_price):
     live_prices_by_ticker = st.session_state.setdefault("live_prices_by_ticker", {})
     live_prices = live_prices_by_ticker.setdefault(ticker, [])
@@ -562,8 +566,8 @@ def main():
         live_enabled = st.checkbox("실거래 활성화", key="live_enabled")
         access_key = ""
         secret_key = ""
-        max_order_amount = 0
-        daily_loss_limit = 0
+        max_order_amount = LIVE_MAX_ORDER_AMOUNT
+        daily_loss_limit = LIVE_DAILY_LOSS_LIMIT
         if live_enabled:
             access_key = st.text_input(
                 "Upbit Access Key",
@@ -577,19 +581,9 @@ def main():
                 key="live_secret_key",
                 type="password",
             )
-            max_order_amount = st.number_input(
-                "1회 최대 매수 금액",
-                min_value=0,
-                value=10000,
-                step=1000,
-                help="0원으로 두면 1회 매수 금액 제한을 사용하지 않습니다.",
-            )
-            daily_loss_limit = st.number_input(
-                "하루 최대 실현 손실",
-                min_value=0,
-                value=10000,
-                step=1000,
-                help="0원으로 두면 하루 손실 제한을 사용하지 않습니다.",
+            st.info(
+                f"실거래 안전 제한: 1회 최대 {format_krw(max_order_amount)} / "
+                f"하루 최대 실현 손실 {format_krw(daily_loss_limit)}"
             )
             st.caption("API 키는 현재 Streamlit 세션에서만 사용하고 파일/GitHub에 저장하지 않습니다.")
 
